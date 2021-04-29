@@ -1,4 +1,4 @@
 build/
-*.txt
 *.so
+*.txt
 Examples/
