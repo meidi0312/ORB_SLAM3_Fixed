@@ -71,6 +71,26 @@ class Node
 		std::string settings_file_name_param_;
 		std::string voc_file_name_param_;
 
+		bool publish_pointcloud_param_;
+		bool publish_pose_param_;
+		bool publish_tf_param_;
+		bool load_map_param_;
+		std::string map_frame_id_param_;
+		std::string camera_frame_id_param_;
+		std::string target_frame_id_param_;
+
+		boost::shared_ptr<tf2_ros::Buffer> tfBuffer;
+		boost::shared_ptr<tf2_ros::TransformListener> tfListener;
+
+		image_transport::Publisher rendered_image_publisher_;
+		ros::Publisher map_points_publisher_;
+		ros::Publisher pose_publisher_;
+		ros::Publisher status_gba_publisher_;
+
+		void PublishPositionAsTransform(cv::Mat position);
+		tf2::Transform TransformFromMat(cv::Mat position_mat);
+		tf2::Transform TransformToTarget (tf2::Transform tf_in, std::string frame_in, std::string frame_target);
+
 		// void PublishMapPoints(std::vector<ORB_SLAM3::MapPoint*> map_points);
 		// void LoadOrbParameters(ORB_SLAM3::ORBParameters& parameters);
 
