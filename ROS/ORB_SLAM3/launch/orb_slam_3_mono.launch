@@ -5,6 +5,7 @@
 
        <param name="publish_pointcloud" type="bool" value="true" />
        <param name="publish_pose" type="bool" value="true" />
+       <param name="publish_tf" type="bool" value="true" />
        <param name="localize_only" type="bool" value="false" />
        <param name="reset_map" type="bool" value="false" />
 

@@ -88,8 +88,12 @@ class Node
 		ros::Publisher status_gba_publisher_;
 
 		void PublishPositionAsTransform(cv::Mat position);
+		void PublishPositionAsPoseStamped (cv::Mat position);
+		void PublishRenderedImage (cv::Mat image);
+		void PublishMapPoints(std::vector<ORB_SLAM3::MapPoint*> map_points);
 		tf2::Transform TransformFromMat(cv::Mat position_mat);
 		tf2::Transform TransformToTarget (tf2::Transform tf_in, std::string frame_in, std::string frame_target);
+		sensor_msgs::PointCloud2 MapPointsToPointCloud (std::vector<ORB_SLAM3::MapPoint*> map_points);
 
 		// void PublishMapPoints(std::vector<ORB_SLAM3::MapPoint*> map_points);
 		// void LoadOrbParameters(ORB_SLAM3::ORBParameters& parameters);

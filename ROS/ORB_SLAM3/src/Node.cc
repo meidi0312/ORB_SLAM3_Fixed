@@ -23,12 +23,12 @@ void Node::Init(){
 	node_handle_.param<std::string>(name_of_node_+"/settings_file", settings_file_name_param_, "file_not_set");
 	node_handle_.param(name_of_node_+ "/publish_pointcloud", publish_pointcloud_param_, true);
 	node_handle_.param(name_of_node_+ "/publish_pose", publish_pose_param_, true);
-	node_handle_.param(name_of_node_+ "/publish_tf", publish_tf_param_, false);
+	node_handle_.param(name_of_node_+ "/publish_tf", publish_tf_param_, true);
 	node_handle_.param<std::string>(name_of_node_+ "/pointcloud_frame_id", map_frame_id_param_, "map");
 	node_handle_.param<std::string>(name_of_node_+ "/camera_frame_id", camera_frame_id_param_, "camera_link");
 	node_handle_.param<std::string>(name_of_node_+ "/target_frame_id", target_frame_id_param_, "base_link");
 	node_handle_.param(name_of_node_ + "/load_map", load_map_param_, false);
-	orb_slam_ = new ORB_SLAM3::System (voc_file_name_param_, settings_file_name_param_, sensor_, true);
+	orb_slam_ = new ORB_SLAM3::System (voc_file_name_param_, settings_file_name_param_, sensor_, false);
 
 	// TF listener
 	tfBuffer.reset(new tf2_ros::Buffer);
@@ -56,11 +56,75 @@ void Node::Update(){
 		if (publish_tf_param_){
 			PublishPositionAsTransform(position);
 		}
+	
+		// if (publish_pose_param_){
+		// 	PublishPositionAsPoseStamped(position);
+		// }
 	}
+	PublishRenderedImage (orb_slam_->DrawCurrentFrame());
 
+	if (publish_pointcloud_param_){
+		PublishMapPoints (orb_slam_->GetAllMapPoints());
+	}
 
 }
 
+/*
+FUNCTION TAKEN FROM ORB_SLAM2_ROS.
+*/
+void Node::PublishMapPoints(std::vector<ORB_SLAM3::MapPoint*> map_points){
+	sensor_msgs::PointCloud2 cloud = MapPointsToPointCloud (map_points);
+	map_points_publisher_.publish(cloud);
+}
+
+/*
+FUNCTION TAKEN FROM ORB_SLAM2_ROS.
+*/
+sensor_msgs::PointCloud2 Node::MapPointsToPointCloud (std::vector<ORB_SLAM3::MapPoint*> map_points) {
+  if (map_points.size() == 0) {
+    std::cout << "Map point vector is empty!" << std::endl;
+  }
+
+  sensor_msgs::PointCloud2 cloud;
+
+  const int num_channels = 3; // x y z
+
+  cloud.header.stamp = current_frame_time_;
+  cloud.header.frame_id = map_frame_id_param_;
+  cloud.height = 1;
+  cloud.width = map_points.size();
+  cloud.is_bigendian = false;
+  cloud.is_dense = true;
+  cloud.point_step = num_channels * sizeof(float);
+  cloud.row_step = cloud.point_step * cloud.width;
+  cloud.fields.resize(num_channels);
+
+  std::string channel_id[] = { "x", "y", "z"};
+  for (int i = 0; i<num_channels; i++) {
+  	cloud.fields[i].name = channel_id[i];
+  	cloud.fields[i].offset = i * sizeof(float);
+  	cloud.fields[i].count = 1;
+  	cloud.fields[i].datatype = sensor_msgs::PointField::FLOAT32;
+  }
+
+  cloud.data.resize(cloud.row_step * cloud.height);
+
+	unsigned char *cloud_data_ptr = &(cloud.data[0]);
+
+  float data_array[num_channels];
+  for (unsigned int i=0; i<cloud.width; i++) {
+    if (map_points.at(i)->nObs >= min_observations_per_point_) {
+      data_array[0] = map_points.at(i)->GetWorldPos().at<float> (2); //x. Do the transformation by just reading at the position of z instead of x
+      data_array[1] = -1.0* map_points.at(i)->GetWorldPos().at<float> (0); //y. Do the transformation by just reading at the position of x instead of y
+      data_array[2] = -1.0* map_points.at(i)->GetWorldPos().at<float> (1); //z. Do the transformation by just reading at the position of y instead of z
+      //TODO dont hack the transformation but have a central conversion function for MapPointsToPointCloud and TransformFromMat
+
+      memcpy(cloud_data_ptr+(i*cloud.point_step), data_array, num_channels*sizeof(float));
+    }
+  }
+
+  return cloud;
+}
 /*
 FUNCTION TAKEN FROM ORB_SLAM2_ROS.
 */
@@ -144,4 +208,64 @@ tf2::Transform Node::TransformToTarget (tf2::Transform tf_in, std::string frame_
     //ros::Duration(1.0).sleep();
     tf_orig2target.setIdentity();
   }
+  /* 
+    // Print debug info
+    double roll, pitch, yaw;
+    // Print debug map2orig
+    tf2::Matrix3x3(tf_map2orig.getRotation()).getRPY(roll, pitch, yaw);
+    ROS_INFO("Static transform Map to Orig [%s -> %s]",
+                    map_frame_id_param_.c_str(), frame_in.c_str());
+    ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                    tf_map2orig.getOrigin().x(), tf_map2orig.getOrigin().y(), tf_map2orig.getOrigin().z());
+    ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                    RAD2DEG(roll), RAD2DEG(pitch), RAD2DEG(yaw));
+    // Print debug tf_orig2target
+    tf2::Matrix3x3(tf_orig2target.getRotation()).getRPY(roll, pitch, yaw);
+    ROS_INFO("Static transform Orig to Target [%s -> %s]",
+                    frame_in.c_str(), frame_target.c_str());
+    ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                    tf_orig2target.getOrigin().x(), tf_orig2target.getOrigin().y(), tf_orig2target.getOrigin().z());
+    ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                    RAD2DEG(roll), RAD2DEG(pitch), RAD2DEG(yaw));
+    // Print debug map2target
+    tf2::Matrix3x3(tf_map2target.getRotation()).getRPY(roll, pitch, yaw);
+    ROS_INFO("Static transform Map to Target [%s -> %s]",
+                    map_frame_id_param_.c_str(), frame_target.c_str());
+    ROS_INFO(" * Translation: {%.3f,%.3f,%.3f}",
+                    tf_map2target.getOrigin().x(), tf_map2target.getOrigin().y(), tf_map2target.getOrigin().z());
+    ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
+                    RAD2DEG(roll), RAD2DEG(pitch), RAD2DEG(yaw));
+  */
+
+  // Transform from map to target
+  tf_map2target = tf_map2orig * tf_orig2target;
+  return tf_map2target;
+}
+
+/*
+FUNCTION TAKEN FROM ORB_SLAM2_ROS.
+*/
+void Node::PublishPositionAsPoseStamped (cv::Mat position) {
+  tf2::Transform tf_position = TransformFromMat(position);
+
+  // Make transform from camera frame to target frame
+  tf2::Transform tf_position_target = TransformToTarget(tf_position, camera_frame_id_param_, target_frame_id_param_);
+  
+  // Make message
+  tf2::Stamped<tf2::Transform> tf_position_target_stamped;
+  tf_position_target_stamped = tf2::Stamped<tf2::Transform>(tf_position_target, current_frame_time_, map_frame_id_param_);
+  geometry_msgs::PoseStamped pose_msg;
+  tf2::toMsg(tf_position_target_stamped, pose_msg);
+  pose_publisher_.publish(pose_msg);
+}
+
+/*
+FUNCTION TAKEN FROM ORB_SLAM2_ROS.
+*/
+void Node::PublishRenderedImage (cv::Mat image) {
+  std_msgs::Header header;
+  header.stamp = current_frame_time_;
+  header.frame_id = map_frame_id_param_;
+  const sensor_msgs::ImagePtr rendered_image_msg = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();
+  rendered_image_publisher_.publish(rendered_image_msg);
 }
