@@ -167,6 +167,8 @@ public:
     // Returns the current camera position (from any tracking method)
     cv::Mat GetCurrentPosition();
 
+    cv::Mat DrawCurrentFrame();
+
     // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
     int GetTrackingState();
