@@ -888,6 +888,10 @@ cv::Mat System::DrawCurrentFrame(){
     return mpFrameDrawer->DrawFrame();
 }
 
+std::vector<ORB_SLAM3::MapPoint*> System::GetAllMapPoints() {
+  return mpAtlas->GetAllMapPoints();
+}
+
 double System::GetTimeFromIMUInit()
 {
     double aux = mpLocalMapper->GetCurrKFTime()-mpLocalMapper->mFirstTs;
