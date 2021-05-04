@@ -57,9 +57,9 @@ void Node::Update(){
 			PublishPositionAsTransform(position);
 		}
 	
-		// if (publish_pose_param_){
-		// 	PublishPositionAsPoseStamped(position);
-		// }
+		if (publish_pose_param_){
+			PublishPositionAsPoseStamped(position);
+		}
 	}
 	PublishRenderedImage (orb_slam_->DrawCurrentFrame());
 
