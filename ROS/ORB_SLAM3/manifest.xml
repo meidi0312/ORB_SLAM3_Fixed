@@ -5,8 +5,10 @@
   <author>Carlos Campos, Richard Elvira, Juan J. Gomez, Jose M.M. Montiel, Juan D. Tardos</author>
   <license>GPLv3</license>
   <depend package="roscpp"/>
+  <depend package="catkin"/>
   <depend package="tf"/>
   <depend package="sensor_msgs"/>
+  <depend package="std_msgs"/>
   <depend package="image_transport"/>
   <depend package="cv_bridge"/>
 </package>

@@ -1,8 +1,8 @@
 echo "Building ROS nodes"
 
-source /opt/ros/melodic/setup.bash
+source /opt/ros/noetic/setup.bash
 
-cd ../Examples/ROS
+cd ../ROS
 currentDir=$(pwd)
 
 cd ORB_SLAM3

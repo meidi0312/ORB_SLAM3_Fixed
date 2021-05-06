@@ -1,0 +1,15 @@
+build/
+*.so
+*.txt
+Examples/
+ROS/ORB_SLAM3/Mono
+
+ROS/ORB_SLAM3/Mono_Inertial
+
+ROS/ORB_SLAM3/MonoAR
+
+ROS/ORB_SLAM3/RGBD
+
+ROS/ORB_SLAM3/Stereo
+
+ROS/ORB_SLAM3/Stereo_Inertial
